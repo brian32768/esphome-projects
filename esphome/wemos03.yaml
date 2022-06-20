@@ -1,0 +1,108 @@
+substitutions:
+  devicename: wemos03
+  upper_devicename: WEMOS03
+  static_ip: 192.168.123.205
+<<: !include common.yaml
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: d1_mini
+  
+captive_portal:
+
+logger:
+
+i2c:
+  scl: D1
+  sda: D2
+
+font:
+#  - file: "unifont.ttf"
+#    id: unifont
+  - file: "DejaVuSansMono.ttf"
+    id: dejavu
+    size: 28
+    glyphs: "0123456789:.APM "    
+    
+light:
+  - id: light_neopixel
+    platform: neopixelbus
+    pin: RX
+    method: ESP8266_DMA
+    type: GRBW
+    num_leds: 1
+    name: "NeoPixel Light"
+    restore_mode: ALWAYS_ON
+    default_transition_length: 500ms
+    
+  - id: light_builtin
+    platform: monochromatic
+    name: Builtin LED
+    output: output_bltinled
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 500ms
+
+output:
+  - id: output_bltinled
+    platform: esp8266_pwm
+    pin: D4
+    inverted: True
+    
+binary_sensor:
+  - platform: gpio
+    id: doppler_motion
+    name: $devicename doppler motion
+    device_class: motion
+#    filters:
+#      - delayed_off: 30s
+    pin:
+      number: D5
+      inverted: False
+      mode: INPUT
+    on_press:
+      then:
+        - light.turn_on: light_builtin
+    on_release:
+      then:
+        - delay: 5s
+        - light.turn_off: light_builtin
+        - light.turn_off: light_neopixel
+
+  - platform: gpio
+    id: button_1
+    name: ${devicename} button 1
+    pin:
+      number: D6
+      mode: INPUT_PULLUP
+      inverted: True
+    filters:
+      - delayed_on: 10ms
+    on_press:
+      then:
+        - light.turn_on:
+            id: light_neopixel
+            brightness: 50%
+            red: 50%
+            green: 0%
+            blue: 0%
+    on_release:
+      then:
+        - delay: 30000ms
+        - light.turn_off: light_neopixel
+      
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x32"
+    address: 0x3C
+    brightness: .50
+    lambda: |-
+      if (id(doppler_motion).state) {
+        it.strftime(10, 2, id(dejavu), "%I:%M%p", id(homeassistant_time).now());
+      } else {
+        it.fill(COLOR_OFF);
+      }
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+

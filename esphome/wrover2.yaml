@@ -1,0 +1,48 @@
+esphome:
+  name: wrover2
+  platform: ESP32
+  board: esp32dev
+
+wifi:
+  ssid: "wildsong2"
+  password: "greenninja2"
+  manual_ip:
+    static_ip: 192.168.123.202
+    gateway: 192.168.123.1
+    subnet: 255.255.255.0
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Dimmer Fallback Hotspot"
+    password: "edMQGXFg6HlQ"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+output:
+  - platform: ledc
+    pin: GPIO33
+    id: gpio_33
+
+# Red LED
+light:
+  - platform: monochromatic
+    name: "Wrover2 LED"
+    id: wrover2_led
+    output: gpio_33
+    
+binary_sensor:
+  - platform: gpio
+    name: "Kitchen motion sensor"
+    id: wrover2_motion
+    pin:
+      number: GPIO18
+      inverted: False
+      mode: INPUT

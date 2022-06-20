@@ -1,0 +1,149 @@
+substitutions:
+  devicename: m5stick01
+  upper_devicename: M5Stick01
+  static_ip: 192.168.123.209
+
+<<: !include common.yaml
+
+esphome:
+  name: ${devicename}
+  platform: ESP32
+  board: m5stick-c
+  platformio_options: 
+    upload_speed: 115200
+
+captive_portal:
+
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+# Don't need a web server right now
+web_server:
+
+# presence detection
+
+binary_sensor:
+
+  - platform: gpio
+    pin:
+      number: GPIO36
+      inverted: false
+    name: ${devicename} motion
+    on_press:
+      then:
+        - light.turn_on: led1
+    on_release:
+      then:
+        - light.turn_off: led1
+        
+  - platform: gpio
+    pin:
+      number: GPIO37
+      inverted: true
+    name: ${devicename} button A
+    on_press:
+      then:
+        - light.turn_on: led1
+    on_release:
+      then:
+        - light.turn_off: led1
+        
+  - platform: gpio
+    pin:
+      number: GPIO39
+      inverted: true
+    name: ${devicename} button B
+    on_press:
+      then:
+        - light.turn_on: led1
+    on_release:
+      then:
+        - light.turn_off: led1
+
+# AXP192 power management - must be present to initialize TFT power on
+sensor:
+  - platform: axp192
+    address: 0x34
+    i2c_id: bus_a
+    update_interval: 30s
+    battery_level:
+      name: ${devicename} battery level
+      id: "m5stick_batterylevel"
+
+  - platform: wifi_signal
+    name: ${devicename} wifi signal
+    id: wifi_dbm
+  - platform: uptime
+    name: ${devicename} uptime
+
+# internal LED
+light:
+  - platform: monochromatic
+    output:  builtin_led
+    name: ${devicename} led
+    id: led1
+    default_transition_length: 100ms
+
+output:
+  - platform: ledc
+    pin: 10
+    inverted: true
+    id: builtin_led
+
+# internal IR Transmitter
+remote_transmitter:
+  - pin:
+      number: GPIO9
+    carrier_duty_percent: 50%
+    id: internal
+
+spi:
+  clk_pin: GPIO13
+  mosi_pin: GPIO15
+
+i2c:
+   - id: bus_a
+     sda: GPIO21
+     scl: GPIO22
+     scan: True
+
+font:
+  - file: 'unifont.ttf'
+    id: font1
+    size: 12
+
+  - file: 'unifont.ttf'
+    id: font2
+    size: 36
+
+  - file: 'unifont.ttf'
+    id: font3
+    size: 14
+
+# builtin 80x160 TFT
+display:
+  - platform: st7735
+    cs_pin: GPIO5
+    dc_pin: GPIO23
+    reset_pin: GPIO18
+    rotation: 90
+    lambda: |-
+      it.print(80, 4, id(font3), ST77XX_GREEN, TextAlign::TOP_CENTER, "${static_ip}");
+      
+      if (id(wifi_dbm).has_state()) {
+        char str[128];
+        it.strftime(80, 20, id(font2), ST77XX_YELLOW, TextAlign::TOP_CENTER, "%I:%M %p", id(homeassistant_time).now());
+        sprintf(str, "%.0f dBm", id(wifi_dbm).state);
+        it.print(80, 66, id(font3), ST77XX_BLUE, TextAlign::CENTER, str);
+        //it.print(80, 60, id(font3), ST77XX_BLUE, TextAlign::CENTER,  "%.0f dBm", id(wifi_dbm).state);
+      } else {
+        it.print(80, 40, id(font3), ST77XX_RED, TextAlign::CENTER, "No Wifi");
+      }
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time

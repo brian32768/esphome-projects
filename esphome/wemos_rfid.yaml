@@ -1,0 +1,49 @@
+substitutions:
+  devicename: wemos_rfid
+  upper_devicename: WEMOS_RFID
+  static_ip: 192.168.123.240
+<<: !include common.yaml
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: d1_mini
+
+logger:
+
+spi:
+  clk_pin: D5
+  miso_pin: D6
+  mosi_pin: D7
+
+rc522_spi:
+  cs_pin: GPIO15
+  on_tag:
+    then:
+      - light.turn_on: light_1
+      - delay: 1s
+      - light.turn_off: light_1
+  reset_pin: D3
+
+binary_sensor:
+  - platform: rc522
+    uid: 74-10-37-94
+    name: "RC522 RFID Tag"
+
+# SDA   D8
+# IRQ   NC
+    
+light:
+  - platform: monochromatic
+    id: light_1
+    name: Builtin LED
+    output: output_bltinled
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 10ms
+
+output:
+  - platform: esp8266_pwm
+    id: output_bltinled
+    pin: D4
+    inverted: True
+

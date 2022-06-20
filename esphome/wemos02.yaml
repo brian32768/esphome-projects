@@ -1,0 +1,106 @@
+substitutions:
+  devicename: wemos02
+  upper_devicename: Wemos
+  static_ip: 192.168.123.204
+<<: !include common.yaml
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: d1_mini
+
+captive_portal:
+
+logger:
+
+i2c:
+  scl: D1
+  sda: D2
+
+font:
+#  - file: "unifont.ttf"
+#    id: unifont
+  - file: "DejaVuSansMono.ttf"
+    id: dejavu
+    size: 28
+    glyphs: "0123456789:.APM "    
+    
+light:
+  - platform: monochromatic
+    id: light_1
+    name: Builtin LED
+    output: output_bltinled
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 10ms
+
+output:
+  - platform: esp8266_pwm
+    id: output_led
+    pin: D3
+    inverted: True
+
+  - platform: esp8266_pwm
+    id: output_bltinled
+    pin: D4
+    inverted: True
+
+# LDR Light Sensor
+sensor:
+  - platform: adc
+    pin: A0
+    name: $devicename lux
+    update_interval: 30s
+    unit_of_measurement: lx
+    filters:
+      - lambda: |-
+          return (x / 10000.0) * 2000000.0;
+
+binary_sensor:
+  - platform: gpio
+    id: doppler_motion
+    name: $devicename doppler motion
+    device_class: motion
+    pin:
+      number: D5
+      inverted: False
+      mode: INPUT
+    on_press:
+      then:
+        - light.turn_on: light_1
+    on_release:
+      then:
+        - delay: 10s
+        - light.turn_off: light_1
+
+  - platform: gpio
+    id: button_1
+    name: ${devicename} button 1
+    pin:
+      number: D6
+      mode: INPUT_PULLUP
+      inverted: True
+    filters:
+      - delayed_on: 10ms
+    on_press:
+      then:
+        - light.turn_on: light_1
+    on_release:
+      then:
+        - delay: 3s
+        - light.turn_off: light_1
+      
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x32"
+    address: 0x3C
+    brightness: .50
+    lambda: |-
+      if (id(doppler_motion).state) {
+        it.strftime(10, 2, id(dejavu), "%I:%M%p", id(homeassistant_time).now());
+      } else {
+        it.fill(COLOR_OFF);
+      }
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+

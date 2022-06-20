@@ -1,0 +1,30 @@
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: ${static_ip}
+    gateway: 192.168.123.1
+    subnet: 255.255.255.0
+  fast_connect: on
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+#  ap:
+#    ssid: ${devicename} hotspot
+#    password: !secret wifi_password
+
+# Enable over-the-air updates
+ota:
+
+# Enable Home Assistant API
+# I need this to get the time from Home Assistant
+api:
+
+# or
+# Enable mqtt
+mqtt:
+    broker: 192.168.123.2
+    discovery: true
+    discovery_prefix: homeassistant
+# 2021-10-10 not working in mosquitto
+#    username: homeassistant
+#    password: u89adsjr3
